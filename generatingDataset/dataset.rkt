@@ -3,12 +3,12 @@
 
 (define N 300)
 (define DIMENSION 2)
-(define zones2
+(define zones
   '(((180 10) (220 10))
     ((-100 15) (110 5))
     ((210 5) (-150 20))))
 
-(define zones
+(define zones2
   (build-list (random 3 10)
               (λ _  (for/list ([i (in-range DIMENSION)])
                       (list (random -250 250) (random 5 30))))))
@@ -72,5 +72,4 @@
           (unless (empty? (rest clone)) (display "\n" out))
           (loop (rest clone) out)))))
 
-(list->file generated-points
-            "C:\\Users\\desktop\\Desktop\\AnIV\\MachineLearning\\generatingDataset\\dataset2.txt")
+(list->file generated-points "dataset2.txt")
