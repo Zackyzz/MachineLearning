@@ -39,7 +39,7 @@
   (map + (second layer) (for/list ([weights (in-list (first layer))])
                           (apply + (map * input weights)))))
 
-(define (update-online dataset layers [t 0])
+(define (go-epoch dataset layers [mode "online"] [t 0])
   (let loop ([clone dataset] [new-layers layers] [Error 0])
     (cond
       [(empty? clone) (list Error new-layers)]
@@ -50,14 +50,16 @@
        (define Scop (first input))
        (define nOut1 (rest input))
 
-       (define new-W12 (caar new-layers))
-       (define new-W23 (caadr new-layers))
+       (define actual-layers (if (equal? mode "online") new-layers layers))
+       
+       (define new-W12 (caar actual-layers))
+       (define new-W23 (caadr actual-layers))
     
-       (define nOut2 (forward nOut1 (first new-layers)))
+       (define nOut2 (forward nOut1 (first actual-layers)))
        (define Out2 (map sigmoid nOut2))
        (define d->Out2 (map d->sigmoid nOut2))
   
-       (define nOut3 (forward Out2 (second new-layers)))
+       (define nOut3 (forward Out2 (second actual-layers)))
        (define Out3 (map sigmoid nOut3))
        (define d->Out3 (map d->sigmoid nOut3))
   
@@ -84,10 +86,10 @@
   (let loop ([n 0] [new-layers layers] [Error 1000000])
     (when (= 1 (remainder n 1000))
       (printf "Epoch ~a: Error = ~a\n" n Error))
-    (define x (update-online dataset new-layers))
+    (define epoch (go-epoch dataset new-layers "online"))
     (cond
-      [(or (<= Error (expt 10 -27)) (= n 100000)) (printf "~a\n" n) (list Error new-layers)]
-      [else (loop (+ 1 n) (second x) (first x))])))
+      [(or (<= Error (expt 10 -28)) (= n 100000)) (printf "~a\n" n) (list Error new-layers)]
+      [else (loop (+ 1 n) (second epoch) (first epoch))])))
 
 (define (test input layers)
   (map sigmoid (forward (map sigmoid (forward input (first layers))) (second layers))))
@@ -95,7 +97,7 @@
 (define trained-network (time (train xor-set network)))
 
 (first trained-network)
-(test '(0.2 0.2) (second trained-network))
-(test '(0.2 0.8) (second trained-network))
-(test '(0.8 0.2) (second trained-network))
-(test '(0.8 0.8) (second trained-network))
+(test '(0.1 0.1) (second trained-network))
+(test '(0.1 0.9) (second trained-network))
+(test '(0.9 0.1) (second trained-network))
+(test '(0.9 0.9) (second trained-network))

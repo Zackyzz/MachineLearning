@@ -56,48 +56,53 @@
 
 (define network (list (list W12 Prag2) (list W23 Prag3)))
 
-(define network2 '((((-3.731497933146584 18.276768821183357)
-                     (-8.507357799726561 2.979136728297567)
-                     (7.377937858604942 -7.835328035172123))
-                    (-9.405265559509498
-                     -3.322784720984437
-                     -5.1028382510786265))
-                   (((13.256613860489107
-                      -12.889016641402828
-                      -4.87968957839649)
-                     (-26.208530174798163
-                      28.07203553131441
-                      -16.707583616183907)
-                     (-5.872355283510901
-                      -10.66629934669147
-                      7.676768750421209))
-                    (-1.1464375210455628
-                     1.1777241928943405
-                     -1.5040735113581627))))
+(define network2 '((((-36.6902697954021
+                      41.97250403627497)
+                     (35.51393524665478
+                      -4.874473046403909)
+                     (0.2479639217872569
+                      23.484863092857548))
+                    (12.343600974308963
+                     12.415865017001355
+                     -10.947294310116455))
+                   (((-2.8923188861865903
+                      8.871287621475634
+                      33.99046745281693)
+                     (33.7431985772417
+                      -43.71332399345301
+                      -40.1877065655855)
+                     (-28.14442047990614
+                      14.993563895008531
+                      4.65090711446412))
+                    (-33.164917601216665
+                     18.91988631478938
+                     0.45593161956081374))))
 
 (define (forward input layer)
   (map + (second layer) (for/list ([weights (in-list (first layer))])
                           (apply + (map * input weights)))))
 
-(define (update-online dataset layers [t 0])
+(define (go-epoch dataset layers [mode "online"] [t 0])
   (let loop ([clone dataset] [new-layers layers] [Error 0])
     (cond
       [(empty? clone) (list Error new-layers)]
       [else
-       ;(define a 0.5)
-       (define a (* 0.8 (exp (- (/ t 100)))))
+       ;(define a 0.4)
+       (define a (* 0.3 (exp (- (/ t 10000)))))
        (define input (first clone))
        (define Scop (first input))
        (define nOut1 (rest input))
 
-       (define new-W12 (caar new-layers))
-       (define new-W23 (caadr new-layers))
+       (define actual-layers (if (equal? mode "online") new-layers layers))
+       
+       (define new-W12 (caar actual-layers))
+       (define new-W23 (caadr actual-layers))
     
-       (define nOut2 (forward nOut1 (first new-layers)))
+       (define nOut2 (forward nOut1 (first actual-layers)))
        (define Out2 (map sigmoid nOut2))
        (define d->Out2 (map d->sigmoid nOut2))
   
-       (define nOut3 (forward Out2 (second new-layers)))
+       (define nOut3 (forward Out2 (second actual-layers)))
        (define Out3 (map sigmoid nOut3))
        (define d->Out3 (map d->sigmoid nOut3))
   
@@ -122,13 +127,13 @@
 
 (define (train dataset layers)
   (let loop ([n 0] [new-layers layers] [Error 1000000])
-    (define x (update-online dataset new-layers))
+    (define x (go-epoch dataset new-layers))
     (cond
       ;[(<= Error (expt 10 -27)) (printf "~a\n" n) (list Error new-layers)]
       [(= n 100) (list Error new-layers)]
       [else (loop (+ 1 n) (second x) (first x))])))
 
-;(define network4 (second (train train-points network)))
+(define network4 (train train-points network))
 
 ;;----------------- testing ---------------------
 
@@ -146,7 +151,7 @@
 
 (define testing-set
   (for/list ([i (in-list all-points)])
-    (define result (test i network2))
+    (define result (test i (second network4)))
     (cons (decodify result (apply max result)) (map (λ(x) (* x 300)) i))))
 
 (define (retrieve-points lst zone)
