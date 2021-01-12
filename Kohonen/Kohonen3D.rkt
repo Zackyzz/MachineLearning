@@ -7,7 +7,7 @@
       (for/vector ([line (in-lines file)])
         (vector-map string->number (list->vector (string-split line)))))))
 
-(define dataset (vector-map (λ(x) (vector-drop x 1)) (file->vector "datasetd3.txt")))
+(define dataset (vector-map (λ(x) (vector-drop x 1)) (file->vector "dataset3d.txt")))
 
 (define neurons (for/vector ([i (in-range 10)])
                   (for/vector ([j (in-range 10)])
