@@ -1,8 +1,8 @@
 import math, random
 
 N = 100
-ITERATIONS = 50
-PRECISION = 16
+ITERATIONS = 100
+PRECISION = 32
 MAX = 5
 
 def f(x):
@@ -38,7 +38,7 @@ def select(sf_population):
         proportion = 0.0
         for i in sf_population:
             proportion += 1/i[1]
-            if rnd < proportion and i[0] not in selected:
+            if rnd < proportion: #and i[0] not in selected:
                 selected.append(i[0])
                 break
     return selected
@@ -49,13 +49,16 @@ def crossover(selected_chromosomes):
     temp2 = codify(selected_chromosomes[1])
     
     digits = PRECISION + len(bin(MAX)[2:])
-    
     length = 1 + random.randint(0,digits)
-    position = random.randint(0,digits//2)    
+    position = random.randint(0,digits//2)
+
     mask = ((1 << length) - 1) << position
+    mask1 = mask & temp1
+    mask2 = mask & temp2
+    mask = mask1 ^ mask2
     
-    new_c1 = decodify(temp1 ^ (mask & temp2))
-    new_c2 = decodify(temp2 ^ (mask & temp1)) 
+    new_c1 = decodify(temp1 ^ mask)
+    new_c2 = decodify(temp2 ^ mask)
     if new_c1 < MAX or new_c2 < MAX:
         return [new_c1, f(new_c1)], [new_c2, f(new_c2)]
     else:
