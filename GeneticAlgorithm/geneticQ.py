@@ -9,16 +9,16 @@ def f(x):
     return math.sinh(math.cos(x)*math.cos(x)+1)
     
  
-def codify(n, m = PRECISION):
-    return int(n*(1<<m))
+def codify(n):
+    return int(n*(1<<PRECISION))
     
     
-def decodify(n, m = PRECISION):
-    return n/(1<<m)
+def decodify(n):
+    return n/(1<<PRECISION)
     
     
-def initialize_population(n, m = MAX):
-    return list(map(lambda x: x*random.random(), [m]*n))
+def initialize_population(n):
+    return list(map(lambda x: x*random.random(), [MAX]*n))
 
     
 def fitnessed_population(population):
@@ -51,31 +51,11 @@ def crossover(selected_chromosomes):
     digits = PRECISION + len(bin(MAX)[2:])
     
     length = 1 + random.randint(0,digits)
-    position = random.randint(0,digits//2)
-    
-    """
-    temp1=1101 1010
-    temp2=1000 0111
-    
-    ???? xxx?
-    
-    mask = 0000 1110
-    mask1 = 0000 0110
-    mask2 = 0000 1010
-    #mask= 0000 1100
-    
-    temp1 ^ mask = 1101 0110
-    temp2 ^ mask = 1000 1010
-    """
-    
+    position = random.randint(0,digits//2)    
     mask = ((1 << length) - 1) << position
-    mask1 = mask & temp2
-    mask2 = mask & temp1
-    #mask = mask1 ^ mask2
     
-    new_c1 = decodify(temp1 ^ mask1)
-    new_c2 = decodify(temp2 ^ mask2)
-        
+    new_c1 = decodify(temp1 ^ (mask & temp2))
+    new_c2 = decodify(temp2 ^ (mask & temp1)) 
     if new_c1 < MAX or new_c2 < MAX:
         return [new_c1, f(new_c1)], [new_c2, f(new_c2)]
     else:
@@ -84,10 +64,10 @@ def crossover(selected_chromosomes):
     
 def mutate(chromosome):
     codified_chromosome = codify(chromosome)
-    digits = len(bin(int(chromosome))[2:])
+    digits = PRECISION + len(bin(int(chromosome))[2:])
     
     for i in range(0, random.randint(1,4)):
-        rnd = random.randint(0, PRECISION + digits)
+        rnd = random.randint(0, digits)
         codified_chromosome ^= 1<<rnd
         
     mutated_choromosome = decodify(codified_chromosome)  
@@ -130,4 +110,3 @@ if __name__ == "__main__":
            bestest = last
         epoch += 1    
     print("\nThe minimum found is:\nf(",bestest[0],") =", bestest[1],"\n")
-    
