@@ -14,10 +14,10 @@
   (cons (first lst) (map (λ(x) (/ x 300.0)) (rest lst))))
 
 (define train-set
-  (take (map normalize (change-class (change-class (change-class (file-lines->list "train-xor.txt") 3 1) 2 -1) 0 -1)) 1000))
+  (take (map normalize (change-class (change-class (change-class (file-lines->list "train-xor.txt") 3 1) 2 -1) 0 -1)) 9000))
 
 (define test-set
-  (drop (map normalize (change-class (change-class (change-class (file-lines->list "train-xor.txt") 3 1) 2 -1) 0 -1)) 9800))
+  (drop (map normalize (change-class (change-class (change-class (file-lines->list "train-xor.txt") 3 1) 2 -1) 0 -1)) 9000))
 
 #|
 (define train-set
@@ -77,7 +77,6 @@
 
 (define (SMO it)
   (let loop ([passes 0] [its 0])
-    (printf "~a\n" (f smo-set (list (/ 111 300) (/ 101 300))))
     (cond
       [(or (> passes it) (> its 100)) passes]
       [else
@@ -137,17 +136,16 @@
        (if (= 0 changes)
            (set! passes (+ 1 passes))
            (set! passes 0))
-       #|(define fake empty)
+       (printf "it: ~a\n" (vector-length smo-set))
+       (define fake empty)
        (for ([i (in-range (vector-length smo-set))])
          (unless (= (vfirst (vector-ref smo-set i)) 0)
            (set! fake (cons (vector-ref smo-set i) fake))))
        (set! smo-set (list->vector fake))
-       (printf "it: ~a\n" (vector-length smo-set))|#
        (loop passes (+ 1 its))])))
 
-(SMO 10)
+(SMO 0)
 
-(printf "\nhey hey\n")
 (for/fold ([sum 0])
           ([i test-set])
   (if (= (first i) (if (negative? (f smo-set (rest i))) -1 1))
