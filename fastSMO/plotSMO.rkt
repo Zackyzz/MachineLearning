@@ -14,23 +14,38 @@
   (cons (first lst) (map (λ(x) (/ x 300.0)) (rest lst))))
 
 (define train-set
-  (take (map normalize (change-class (change-class (change-class (file-lines->list "train-xor.txt") 2 0) 3 1) 0 -1)) 1000))
+  (take (map normalize (change-class (change-class (change-class (file-lines->list "train-xor.txt") 3 1) 2 -1) 0 -1)) 1000))
 
 (define test-set
-  (take (map normalize (change-class (change-class (change-class (file-lines->list "test-xor.txt") 2 0) 3 1) 0 -1)) 200))
+  (drop (map normalize (change-class (change-class (change-class (file-lines->list "train-xor.txt") 3 1) 2 -1) 0 -1)) 9800))
+
+#|
+(define train-set
+  (take (map normalize (change-class (change-class (file-lines->list "radial.txt") 2 -1) 0 1)) 1000))
+
+(define test-set
+  (drop (map normalize (change-class (change-class (file-lines->list "radial.txt") 2 -1) 0 1)) 9000))
+|#
 
 #|(define train-set
-  (take (map normalize (change-class (file-lines->list "dataSMO2.txt") 0 -1)) 1000))
+  (take (map normalize (change-class (file-lines->list "dataSMO.txt") 0 -1)) 1000))
 
 (define test-set
-  (drop (map normalize (change-class (file-lines->list "dataSMO2.txt") 0 -1)) 9900))|#
+  (drop (map normalize (change-class (file-lines->list "dataSMO.txt") 0 -1)) 9000))
+|#
+
+(define (euclidean-distance p q)
+  (apply + (map (λ(x y) (sqr (- x y))) p q)))
 
 (define (dot a b)
-  (expt (apply + (map * a b)) 2))
+  (exp (* -0.1 (euclidean-distance a b))))
+
+(define (dot2 a b)
+  (apply + (map * a b)))
 
 (define (vectorize set)
   (for/vector ([i set])
-    (vector 1 i)))
+    (vector 0 i)))
 
 (define smo-set (vectorize train-set))
 
@@ -64,7 +79,7 @@
   (let loop ([passes 0] [its 0])
     (printf "~a\n" (f smo-set (list (/ 111 300) (/ 101 300))))
     (cond
-      [(or (> passes it) (> its 20)) passes]
+      [(or (> passes it) (> its 100)) passes]
       [else
        (define changes 0)
        (define N (vector-length smo-set))
@@ -94,8 +109,8 @@
                             (min C (- (+ C alphaj) alphai))))
               (when (not (= L H))
                 (define eta (- (* 2 (dot xi xj)) (dot xi xi) (dot xj xj)))
-                (when  (not (>= eta -0.01))
-                  (define aj (- alphaj (/ (* yi (- Ei Ej)) eta)))
+                (when  (not (>= eta 0))
+                  (define aj (- alphaj (/ (* yj (- Ei Ej)) eta)))
                   (when (> aj H)
                     (set! aj H))
                   (when (< aj L)
@@ -140,13 +155,10 @@
       (begin (printf "~a\n" i) (+ sum 0))))
 
 
-
-
-
 (define all-points
   (apply append
-         (for/list ([i (in-range -300 300 5)])
-           (for/list ([j (in-range -300 300 5)])
+         (for/list ([i (in-range -300 300 3)])
+           (for/list ([j (in-range -300 300 3)])
              (map (λ(x) (/ x 300)) (list i j))))))
 
 (define colors (list "Red" "Navy" "Olive" "DarkGreen" "Magenta"
@@ -161,7 +173,6 @@
           (cons (cdar lst) (get-points (cdr lst) class))
           (get-points (cdr lst) class))))
 
-
 (define (go-plot)
   (plot-background "AliceBlue")
   (plot-width 600)
@@ -175,10 +186,10 @@
            (points (get-points test-all i)
                    #:x-min -1 #:x-max 1
                    #:y-min -1 #:y-max 1
-                   #:sym 'fullcircle8 #:color (list-ref colors (+ i 2))
+                   #:sym 'fullcircle3 #:color (list-ref colors (+ i 2))
                    #:alpha 0.1))
          (for/list ([i '(-1 1)])
-           (points (get-points train-set i)
+           (points (get-points test-set i)
                    #:x-min -1 #:x-max 1
                    #:y-min -1 #:y-max 1
                    #:sym 'full7star #:color (list-ref colors (+ i 2))
