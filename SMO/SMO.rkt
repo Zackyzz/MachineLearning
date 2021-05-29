@@ -8,40 +8,22 @@
         (map string->number (string-split line))))))
 
 (define (change-class dataset prev after)
-  (map (λ(x) (if (= prev (car x)) (cons after (cdr x)) x)) dataset))
+  (map (λ(x) (if (= prev (first x)) (cons after (rest x)) x)) dataset))
 
 (define (normalize lst)
   (cons (first lst) (map (λ(x) (/ x 300.0)) (rest lst))))
 
 (define train-set
-  (take (map normalize (change-class (change-class (change-class (file-lines->list "train-xor.txt") 3 1) 2 -1) 0 -1)) 9000))
+  (take (map normalize (change-class (change-class (change-class (file-lines->list "train-xor.txt") 3 1) 2 -1) 0 -1)) 3000))
 
 (define test-set
-  (drop (map normalize (change-class (change-class (change-class (file-lines->list "train-xor.txt") 3 1) 2 -1) 0 -1)) 9000))
+  (drop (map normalize (change-class (change-class (change-class (file-lines->list "test-xor.txt") 3 1) 2 -1) 0 -1)) 9000))
 
-#|
-(define train-set
+#|(define train-set
   (take (map normalize (change-class (change-class (file-lines->list "radial.txt") 2 -1) 0 1)) 1000))
-
 (define test-set
   (drop (map normalize (change-class (change-class (file-lines->list "radial.txt") 2 -1) 0 1)) 9000))
 |#
-
-#|(define train-set
-  (take (map normalize (change-class (file-lines->list "dataSMO.txt") 0 -1)) 1000))
-
-(define test-set
-  (drop (map normalize (change-class (file-lines->list "dataSMO.txt") 0 -1)) 9000))
-|#
-
-(define (euclidean-distance p q)
-  (apply + (map (λ(x y) (sqr (- x y))) p q)))
-
-(define (dot a b)
-  (exp (* -0.1 (euclidean-distance a b))))
-
-(define (dot2 a b)
-  (apply + (map * a b)))
 
 (define (vectorize set)
   (for/vector ([i set])
@@ -49,22 +31,19 @@
 
 (define smo-set (vectorize train-set))
 
+;---------------- HELPER FUNCTIONS --------------------------
+
+(define (dot2 a b)
+  (exp (* -0.1 (apply + (map (λ(x y) (sqr (- x y))) a b)))))
+
+(define (dot a b)
+  (sqr (apply + (map * a b))))
+
 (define (vfirst vect)
   (vector-ref vect 0))
 
 (define (vsecond vect)
   (vector-ref vect 1))
-
-(define C 1)
-(define tol 0.001)
-(define b 0)
-
-(define N (vector-length smo-set))
-
-(define (f set X)
-  (for/fold ([sum b])
-            ([i set])
-    (+ sum (* (vfirst i) (first (vsecond i)) (dot X (rest (vsecond i)))))))
 
 (define (random-j N i)
   (define rnd (random 0 N))
@@ -72,19 +51,28 @@
       rnd
       (random-j N i)))
 
-(define (vector-delete v i)
-  (vector-append (vector-take v i) (vector-drop v (+ i 1))))
+(define (f set X)
+  (for/fold ([sum b])
+            ([i set])
+    (+ sum (* (vfirst i) (first (vsecond i)) (dot X (rest (vsecond i)))))))
 
-(define (SMO it)
-  (let loop ([passes 0] [its 0])
+;------------------- SMO --------------------
+
+(define C 1)
+(define tol 0.001)
+(define b 0)
+
+(define (SMO max-passes)
+  (let loop ([passes 0] [iteration 0])
     (cond
-      [(or (> passes it) (> its 100)) passes]
+      [(or (> passes max-passes) (> iteration 1000))
+       (list iteration (vector-length smo-set))]
       [else
        (define changes 0)
        (define N (vector-length smo-set))
-       (define (outer-loop [i 0])
+       (let outer-loop ([i 0])
          (cond
-           [(= i N) (printf "~a\n" passes)]
+           [(= i N) #t]
            [else
             (define alphai (vfirst (vector-ref smo-set i)))
             (define xi (rest (vsecond (vector-ref smo-set i))))
@@ -93,7 +81,7 @@
     
             (when (or (and (< (* Ei yi) (- tol)) (< alphai C))
                       (and (> (* Ei yi) tol) (> alphai 0)))
-      
+              
               (define j (random-j N i))
               (define alphaj (vfirst (vector-ref smo-set j)))
               (define xj (rest (vsecond (vector-ref smo-set j))))
@@ -106,6 +94,7 @@
               (define H (if (= yi yj)
                             (min C (+ alphai alphaj))
                             (min C (- (+ C alphaj) alphai))))
+              
               (when (not (= L H))
                 (define eta (- (* 2 (dot xi xj)) (dot xi xi) (dot xj xj)))
                 (when  (not (>= eta 0))
@@ -132,26 +121,31 @@
                             (set! b b2)
                             (set! b (/ (+ b1 b2) 2))))))))
             (outer-loop (+ 1 i))]))
-       (time (outer-loop 0))
+       
        (if (= 0 changes)
            (set! passes (+ 1 passes))
            (set! passes 0))
-       (printf "it: ~a\n" (vector-length smo-set))
-       (define fake empty)
+       
+       (printf "Iteration: ~a Support Vectors: ~a\n" iteration (vector-length smo-set))
+       (define temp-set empty)
        (for ([i (in-range (vector-length smo-set))])
          (unless (= (vfirst (vector-ref smo-set i)) 0)
-           (set! fake (cons (vector-ref smo-set i) fake))))
-       (set! smo-set (list->vector fake))
-       (loop passes (+ 1 its))])))
+           (set! temp-set (cons (vector-ref smo-set i) temp-set))))
+       (set! smo-set (list->vector temp-set))
+       (loop passes (+ 1 iteration))])))
 
-(SMO 0)
+(SMO 50)
 
+;------------------- TESTING --------------------
+
+(printf "Number of correct predictions: ")
 (for/fold ([sum 0])
           ([i test-set])
   (if (= (first i) (if (negative? (f smo-set (rest i))) -1 1))
       (+ sum 1)
-      (begin (printf "~a\n" i) (+ sum 0))))
+      (+ sum 0)))
 
+;------------------- PLOTTING --------------------
 
 (define all-points
   (apply append
@@ -171,6 +165,10 @@
           (cons (cdar lst) (get-points (cdr lst) class))
           (get-points (cdr lst) class))))
 
+(define support-vectors
+  (for/list ([i smo-set])
+    (rest (vsecond i))))
+
 (define (go-plot)
   (plot-background "AliceBlue")
   (plot-width 600)
@@ -184,13 +182,19 @@
            (points (get-points test-all i)
                    #:x-min -1 #:x-max 1
                    #:y-min -1 #:y-max 1
-                   #:sym 'fullcircle3 #:color (list-ref colors (+ i 2))
-                   #:alpha 0.1))
+                   #:sym 'fullcircle4 #:color (list-ref colors (+ i 2))
+                   #:alpha 0.2))
          (for/list ([i '(-1 1)])
-           (points (get-points test-set i)
+           (points (get-points train-set i)
                    #:x-min -1 #:x-max 1
                    #:y-min -1 #:y-max 1
                    #:sym 'full7star #:color (list-ref colors (+ i 2))
-                   #:alpha 1)))))
+                   #:alpha 1))
+         (for/list ([i '(-1 1)])
+           (points (get-points support-vectors i)
+                   #:x-min -1 #:x-max 1
+                   #:y-min -1 #:y-max 1
+                   #:sym 'diamond #:color (list-ref colors (+ i 2))
+                   #:alpha 0.8)))))
 
 (go-plot)
