@@ -70,7 +70,7 @@
       [else
        (define changes 0)
        (define N (vector-length smo-set))
-       (let outer-loop ([i 0])
+       (define (outer-loop [i 0])
          (cond
            [(= i N) #t]
            [else
@@ -121,12 +121,13 @@
                             (set! b b2)
                             (set! b (/ (+ b1 b2) 2))))))))
             (outer-loop (+ 1 i))]))
-       
+       (outer-loop 0)
        (if (= 0 changes)
            (set! passes (+ 1 passes))
            (set! passes 0))
        
-       (printf "Iteration: ~a Support Vectors: ~a\n" iteration (vector-length smo-set))
+       (unless (= 0 changes)
+         (printf "Iteration: ~a Support Vectors: ~a\n" iteration (vector-length smo-set)))
        (define temp-set empty)
        (for ([i (in-range (vector-length smo-set))])
          (unless (= (vfirst (vector-ref smo-set i)) 0)
@@ -167,7 +168,7 @@
 
 (define support-vectors
   (for/list ([i smo-set])
-    (rest (vsecond i))))
+    (vsecond i)))
 
 (define (go-plot)
   (plot-background "AliceBlue")
@@ -182,19 +183,19 @@
            (points (get-points test-all i)
                    #:x-min -1 #:x-max 1
                    #:y-min -1 #:y-max 1
-                   #:sym 'fullcircle4 #:color (list-ref colors (+ i 2))
+                   #:sym 'fullcircle4 #:color (if (= i 1) "DarkGreen" "Navy")
                    #:alpha 0.2))
          (for/list ([i '(-1 1)])
            (points (get-points train-set i)
                    #:x-min -1 #:x-max 1
                    #:y-min -1 #:y-max 1
-                   #:sym 'full7star #:color (list-ref colors (+ i 2))
+                   #:sym 'full7star #:color (if (= i 1) "DarkGreen" "Navy")
                    #:alpha 1))
          (for/list ([i '(-1 1)])
            (points (get-points support-vectors i)
                    #:x-min -1 #:x-max 1
                    #:y-min -1 #:y-max 1
-                   #:sym 'diamond #:color (list-ref colors (+ i 2))
-                   #:alpha 0.8)))))
+                   #:sym 'fullcircle6 #:color (if (= i 1) "Red" "Magenta")
+                   #:alpha 1)))))
 
 (go-plot)
