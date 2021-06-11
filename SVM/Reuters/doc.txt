@@ -1,0 +1,21 @@
+1. Prezentarea temei
+
+2. Consideratii teoretice
+2.1 Algoritmi de invatare
+2.2 Rocchio
+2.3 SVM
+2.4 Evaluarea algoritmilor de invatare
+
+3. Consideratii practice
+3.1 Arhitectura aplicatiei
+3.2 Citirea fisierelor
+3.3 Implementarea Rocchio
+
+3.4 Implementarea SVM
+
+3.5 Prezentarea aplicatiei
+3.6 Rezultate experimentale
+
+4. Concluzii si dezvoltarii ulterioare
+
+5. Bibliografie

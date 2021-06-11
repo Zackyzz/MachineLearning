@@ -1,0 +1,29 @@
+duration (s): 7061 + 1077
+accuracy: 1757/2351 = 74.73 %
+C = 1, gamma = 0.5
+
+duration (s): 3h
+accuracy: 1791/2351 = 76.18 %
+C = 3, gamma = 0.75
+
+duration (s): 1,5h
+accuracy: 1762/2351 = 74.94 %
+C = 5, gamma = 0.5
+
+duration (s): 1,75h
+accuracy: 1803/2351 = 76.69 %
+C = 5, gamma = 0.75
+
+duration (s): 3,5h
+accuracy: 1817/2351 = 77.28 %
+C = 10, gamma = 1
+
+C = 10, gamma = 1.25
+1832/2351  = 77.92 %
+
+C = 12.5, gamma = 1.25
+1828/2351  = 77.92 %
+
+
+C = 12.5, gamma = 1.25
+1822/2351  = 77.92 %

@@ -14,10 +14,10 @@
   (map (λ(x) (if (member (first x) classes) (cons 1 (rest x)) (cons -1 (rest x)))) dataset))
 
 (define train-set
-  (take (map normalize (change-classes '(1 3)  (file-lines->list "train-xor.txt"))) 7000))
+  (take (map normalize (change-classes '(1 3)  (file-lines->list "train-xor.txt"))) 1000))
 
 (define test-set
-  (drop (map normalize (change-classes '(1 3)  (file-lines->list "test-xor.txt"))) 5000))
+  (drop (map normalize (change-classes '(1 3)  (file-lines->list "test-xor.txt"))) 9000))
 
 (define N (length train-set))
 

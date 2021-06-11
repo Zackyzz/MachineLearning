@@ -1,0 +1,18 @@
+duration (s): 7061 + 1077
+accuracy: 1757/2351 = 74.73 %
+C = 1, gamma = 0.5
+
+duration (s): 19868 + 1077
+accuracy: 1245/2351
+C = 1, gamma = 0.6
+
+duration (s): 19868 + 1077
+accuracy: 1245/2351
+C = 10, gamma = 0.6
+
+duration (s): 1407 + 159
+d = 9
+accuracy: 1201/2351
+
+d=3, C= 10
+accuracy: 1200/2351

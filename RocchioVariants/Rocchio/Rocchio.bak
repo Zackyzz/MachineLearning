@@ -10,8 +10,8 @@
 (define (change-class dataset prev after)
   (map (λ(x) (if (= prev (car x)) (cons after (cdr x)) x)) dataset))
 
-(define train-set (change-class (change-class (file-lines->list "train-xor.txt") 2 0) 3 1))
-(define test-set (change-class (change-class (file-lines->list "test-xor.txt") 2 0) 3 1))
+(define train-set (change-class (change-class (file-lines->list "train-xor.txt") 2 1) 3 0))
+(define test-set (change-class (change-class (file-lines->list "test-xor.txt") 2 1) 3 0))
 
 (define decimal exact->inexact)
 
@@ -109,16 +109,16 @@
                    #:sym 'fullcircle3 #:color (list-ref colors i)
                    #:alpha 0.1))
          (for/list ([i classes])
-           (points (get-points train-set i)
+           (points (get-points test-set i)
                    #:x-min -300 #:x-max 300
                    #:y-min -300 #:y-max 300
                    #:sym 'full6star #:color (list-ref colors i)
                    #:alpha 1))
-         (for/list ([centroid trained] [i colors] [j classes])
+         (for/list ([centroid trained] [i colors])
            (points (list centroid)
                    #:x-min -300 #:x-max 300
                    #:y-min -300 #:y-max 300
-                   #:sym 'fullcircle8 #:color (list-ref colors j)
+                   #:sym 'fullcircle8 #:color "Black"
                    #:alpha 1)))))
 
 (go-plot)

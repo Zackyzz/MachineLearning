@@ -19,9 +19,9 @@
   (cons (first lst) (map (λ(x) (/ x 300.0)) (rest lst))))
 
 (define temp-train
-  (map normalize (change-class (change-class (file-lines->list "train-xor.txt") 2 0) 3 1)))
+  (map normalize (change-class (change-class (file-lines->list "train-xor.txt") 2 1) 3 2)))
 (define temp-test
-  (map normalize (change-class (change-class (file-lines->list "test-xor.txt") 2 0) 3 1)))
+  (map normalize (change-class (change-class (file-lines->list "test-xor.txt") 2 1) 3 2)))
 
 (define train-set (map 2d-3d temp-train))
 (define test-set (map 2d-3d temp-test))
@@ -156,13 +156,13 @@
   (plot-new-window? #t)
 
   (plot3d (list
-           (for/list ([i classes])
+           #|(for/list ([i classes])
              (points3d (get-points testing-in3d i)
                        #:x-min -1 #:x-max 1
                        #:y-min -1 #:y-max 1
                        #:z-min -1 #:z-max 1
                        #:sym 'full6star #:color (list-ref colors i)
-                       #:alpha 0.1))
+                       #:alpha 0.1))|#
            (for/list ([i classes])
              (points3d (get-points test-set i)
                        #:x-min -1 #:x-max 1

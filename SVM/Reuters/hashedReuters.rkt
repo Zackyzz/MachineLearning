@@ -24,7 +24,13 @@
   (for/list ([i fileset])
     (get-sample i)))
 
-(define train-set (take (get-dataset (split-set trainset)) 3000))
+(define (triml lst elements)
+  (if (empty? lst) empty
+      (if (not (member (caar lst) elements))
+          (triml (rest lst) elements)
+          (cons (car lst) (triml (rest lst) elements)))))
+
+(define train-set (get-dataset (split-set trainset)))
 (define test-set (get-dataset (split-set testset)))
 
 ;;-------------------------------------------------
@@ -43,13 +49,16 @@ classes
   (for/vector ([i classes])
     (vectorize (change-class i train-set))))
 
-(define (dot3 x y [f sqr])
+(define (quadra x)
+  (* x (sqr x)))
+
+(define (dot2 x y [f quadra])
   (f (for/fold ([sum 0])
                ([(k v) (in-hash x)])
        (+ sum (* (hash-ref y k 0) v)))))
 
 (define (dot u v)
-  (exp (* -0.5
+  (exp (* -12.5
           (let ((indices (remove-duplicates (append (hash-keys u) (hash-keys v)))))
             (apply + (map (lambda (i) (let ((x (hash-ref u i 0))
                                             (y (hash-ref v i 0)))
@@ -75,7 +84,7 @@ classes
     (+ sum (* (vfirst i) (first xy) (dot X (second xy))))))
 
 (define N (length train-set))
-(define C 0.5)
+(define C 10)
 (define tol 0.001)
 (define b 0)
 (define bs
@@ -90,12 +99,13 @@ classes
     (printf "Class: ~a\n" i)
     (set! smo-set (vector-ref smo-sets (index-of classes i)))
     (set! b (vector-ref bs (index-of classes i)))
-    
+    (define max-passes 0)
     (define (main [num-changed 0] [examine-all 1] [iteration 0])
       (printf "Iteration: ~a ~a Changed: ~a \n"
               iteration (vector-length smo-set) num-changed)
       (cond
-        [(and (> iteration 1) (= num-changed 0)) iteration]
+        [(> max-passes 0) iteration]
+        ;[(and (> iteration 1) (= num-changed 0)) iteration]
         [(not (or (= examine-all 1) (> num-changed 0))) iteration]
         [else
          (set! N (vector-length smo-set))
@@ -107,8 +117,15 @@ classes
                (define alphai (vfirst (vector-ref smo-set i)))
                (when (and (> alphai 0) (< alphai C))
                  (set! num-changed (+ num-changed (examine-example i))))))
+
+         (define temp empty)
+         (for ([i smo-set])
+           (unless (= (vfirst i) 0)
+             (set! temp (cons i temp))))
+         (set! smo-set (list->vector temp))
          
-      
+         (when (= num-changed 0)
+           (set! max-passes (+ max-passes 1)))
          (if (= 1 examine-all)
              (set! examine-all 0)
              (when (= 0 num-changed)
@@ -116,13 +133,7 @@ classes
          (main num-changed examine-all (+ 1 iteration))]))
 
     (time (main))
-    (define temp empty)
-    (for ([i smo-set])
-      (unless (= (vfirst i) 0)
-        (set! temp (cons i temp))))
-    (set! smo-set (list->vector temp))
-    (printf "~a ~a\n" (vector-length smo-set) (length simplifier))
-         
+  
     (vector-set! smo-sets (index-of classes i) smo-set)
     (vector-set! bs (index-of classes i) b)
     (set! simplifier empty)))
