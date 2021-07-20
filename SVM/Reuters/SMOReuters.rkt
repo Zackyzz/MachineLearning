@@ -9,26 +9,31 @@
 
 (define (split-set dataset) (map (λ(x) (string-split x)) (drop dataset 3)))
 
-(define (get-sample sample)
-  (let loop ([clone sample] [new-sample (make-list dimension 0)])
+(define (get-sample sample [constant 70.0])
+  (let loop ([clone sample] [new-sample (make-hash)])
     (cond
       [(equal? "#" (first clone))
        (define cls (string->number (substring (second clone) 1)))
-       (cons (if (not cls) 0 cls) new-sample)]
+       (list (if (not cls) 0 cls) new-sample)]
       [else
        (define coordinate (map string->number (string-split (first clone) #rx"(:)")))
-       (loop (rest clone)
-             (list-set new-sample (first coordinate) (second coordinate)))])))
+       (hash-set! new-sample (first coordinate) (/ (second coordinate) constant))
+       (loop (rest clone) new-sample)])))
 
 (define (get-dataset fileset)
   (for/list ([i fileset])
     (get-sample i)))
 
-(define (normalize lst)
-  (cons (first lst) (map (λ(x) (/ x 10.0)) (rest lst))))
+(define (triml lst elements)
+  (if (empty? lst) empty
+      (if (not (member (caar lst) elements))
+          (triml (rest lst) elements)
+          (cons (car lst) (triml (rest lst) elements)))))
 
-(define train-set (take (map normalize (get-dataset (split-set trainset))) 1000))
-(define test-set (take (map normalize (get-dataset (split-set testset))) 100))
+(define train-set (get-dataset (split-set trainset)))
+(define test-set (get-dataset (split-set testset)))
+
+;;-------------------------------------------------
 
 (define (change-class cls dataset)
   (map (λ(x) (if (= cls (first x)) (cons 1 (rest x)) (cons -1 (rest x)))) dataset))
@@ -44,17 +49,27 @@ classes
   (for/vector ([i classes])
     (vectorize (change-class i train-set))))
 
-(define (dot a b [f sqr])
-  (f (apply + (map * a b))))
+(define (quadra x)
+  (* x (sqr x)))
 
-(define (dot2 a b)
-  (exp (* -0.1 (apply + (map (λ(x y) (sqr (- x y))) a b)))))
+(define (dot2 x y [f quadra])
+  (f (for/fold ([sum 0])
+               ([(k v) (in-hash x)])
+       (+ sum (* (hash-ref y k 0) v)))))
 
-(define (random-j N i)
+(define (dot u v)
+  (exp (* -1.25
+          (let ((indices (remove-duplicates (append (hash-keys u) (hash-keys v)))))
+            (apply + (map (lambda (i) (let ((x (hash-ref u i 0))
+                                            (y (hash-ref v i 0)))
+                                        (sqr (- x y))))
+                          indices))))))
+
+(define (random-j i N)
   (define rnd (random 0 N))
   (if (not (= rnd i))
       rnd
-      (random-j N i)))
+      (random-j i N)))
 
 (define (vfirst vect)
   (vector-ref vect 0))
@@ -66,11 +81,11 @@ classes
   (for/fold ([sum bias])
             ([i set])
     (define xy (vsecond i))
-    (+ sum (* (vfirst i) (first xy) (dot X (rest xy))))))
+    (+ sum (* (vfirst i) (first xy) (dot X (second xy))))))
 
 (define N (length train-set))
-(define C 1)
-(define tol 0.001)
+(define C 10)
+(define tol 0.1)
 (define b 0)
 (define bs
   (for/vector ([i classes])
@@ -84,14 +99,16 @@ classes
     (printf "Class: ~a\n" i)
     (set! smo-set (vector-ref smo-sets (index-of classes i)))
     (set! b (vector-ref bs (index-of classes i)))
-    
+    (define max-passes 0)
     (define (main [num-changed 0] [examine-all 1] [iteration 0])
-      (printf "Iteration: ~a Changed: ~a \n"
-              iteration num-changed)
+      (printf "Iteration: ~a ~a Changed: ~a \n"
+              iteration (vector-length smo-set) num-changed)
       (cond
-        [(and (> iteration 1) (= num-changed 0)) iteration]
+        [(> max-passes 0) iteration]
+        ;[(and (> iteration 1) (= num-changed 0)) iteration]
         [(not (or (= examine-all 1) (> num-changed 0))) iteration]
         [else
+         (set! N (vector-length smo-set))
          (set! num-changed 0)
          (if (= 1 examine-all)
              (for ([i N])
@@ -100,6 +117,15 @@ classes
                (define alphai (vfirst (vector-ref smo-set i)))
                (when (and (> alphai 0) (< alphai C))
                  (set! num-changed (+ num-changed (examine-example i))))))
+
+         (define temp empty)
+         (for ([i smo-set])
+           (unless (= (vfirst i) 0)
+             (set! temp (cons i temp))))
+         (set! smo-set (list->vector temp))
+         
+         (when (= num-changed 0)
+           (set! max-passes (+ max-passes 1)))
          (if (= 1 examine-all)
              (set! examine-all 0)
              (when (= 0 num-changed)
@@ -107,7 +133,8 @@ classes
          (main num-changed examine-all (+ 1 iteration))]))
 
     (time (main))
-    (vector-set! smo-sets (index-of classes i) simplifier)
+  
+    (vector-set! smo-sets (index-of classes i) smo-set)
     (vector-set! bs (index-of classes i) b)
     (set! simplifier empty)))
 
@@ -115,7 +142,7 @@ classes
   (define done 0)
   (define alphai (vfirst (vector-ref smo-set i)))
   (define xyi (vsecond (vector-ref smo-set i)))
-  (define xi (rest xyi))
+  (define xi (second xyi))
   (define yi (first xyi))
   (define Ei (- (f simplifier xi b) yi))
 
@@ -147,14 +174,14 @@ classes
            (when (and (> alphaj 0) (< alphaj C))
              (set! done (take-step i j (list alphai xi yi Ei))))
            (loop (+ 1 j))])))|#
-    (set! done (take-step i (random-j N i) (list alphai xi yi Ei)))
-    #|(when (= done 0)
+
+    (when (= done 0)
       (let loop ([j 0])
         (cond
-          [(or (= j (/ N 10)) (= done 1)) done]
+          [(or (= j N) (= done 1)) done]
           [else
-           (set! done (take-step i (random j N) (list alphai xi yi Ei)))
-           (loop (+ 1 j))])))|#)
+           (set! done (take-step i (random-j i N) (list alphai xi yi Ei)))
+           (loop (+ 1 j))]))))
   done)
 
 (define (take-step i j prevs)
@@ -165,7 +192,7 @@ classes
   
   (define alphaj (vfirst (vector-ref smo-set j)))
   (define xyj (vsecond (vector-ref smo-set j)))
-  (define xj (rest xyj))
+  (define xj (second xyj))
   (define yj (first xyj))
   (define Ej (- (f simplifier xj b) yj))
 
@@ -188,7 +215,7 @@ classes
 
       (unless (< (abs (- alphaj aj)) tol)
         (define ai (+ alphai (* yi yj (- alphaj aj))))
-        (vector-set! smo-set i (vector ai (cons yi xi)))
+        (vector-set! smo-set i (vector ai (list yi xi)))
         (vector-set! smo-set j (vector aj xyj))
 
         (set! simplifier empty)
@@ -208,16 +235,62 @@ classes
                 (set! b (/ (+ b1 b2) 2)))))))
   returner)
 
-(multiclass-SMO)
+(time (multiclass-SMO))
 
-(printf "Number of correct predictions: ")
-(for/fold ([sum 0])
-          ([example test-set])
-  (if (= (first example)
+
+(define (update-matrix r p matrix)
+  (define (index r p i)
+    (cond
+      [(= r p i) 0]
+      [(and (= r i) (not (= r p))) 1]
+      [(and (= p i) (not (= r p))) 2]
+      [else 3]))
+  (for/list ([classX matrix] [i classes])
+    (list-update classX (index r p i) add1)))
+
+(define (test-svm test-set)
+  (let loop ([clone test-set]
+             [error-matrix (make-list (length classes) (make-list 4 0))]
+             [corrects 0])
+    (cond
+      [(equal? empty clone) (list error-matrix corrects)]
+      [else
+       (define reality (caar clone))
+       (define element (cadar clone))
+
+       (define prediction
          (caar (sort
                 (for/list ([i classes])
                   (list i (f (vector-ref smo-sets (index-of classes i))
-                             (rest example) (vector-ref bs (index-of classes i)))))
+                             element (vector-ref bs (index-of classes i)))))
                 > #:key (λ(x) (second x)))))
-      (+ sum 1)
-      (+ sum 0)))
+       
+       (loop (rest clone) (update-matrix reality prediction error-matrix)
+             (if (= reality prediction) (+ 1 corrects) corrects))])))
+
+(define tests (test-svm test-set))
+(define error-matrix (first tests))
+(second tests)
+
+(define (cut-digits n)
+  (exact->inexact (/ (floor (* n (expt 10 4))) (expt 10 2))))
+
+(define results
+  (for/list ([i error-matrix] [j classes])
+    (define TP (first i)) ;r p
+    (define FN (second i)) ;r !p
+    (define FP (third i)) ;!r p
+    (define TN (fourth i)) ;!r !p
+
+    (define Accuracy (/ (+ TP TN) (+ TP FN FP TN)))
+    (define Precision (/ TP (if (= 0 (+ TP FP)) 1 (+ TP FP))))
+    (define Recall (/ TP (if (= 0 (+ TP FP)) 1 (+ TP FN))))
+
+    (printf "Class ~a:\n" j)
+    (printf "Accuracy: ~a%\n" (cut-digits Accuracy))
+    (printf "Precision: ~a%\n" (cut-digits Precision))
+    (printf "Recall: ~a%\n" (cut-digits Recall))
+    (printf "Error matrix: ~a \n\n" i)
+    (map exact->inexact (list Accuracy Precision Recall))))
+
+(map cut-digits (map (λ(x) (/ x (length classes))) (apply map + results)))

@@ -14,16 +14,10 @@
   (map (λ(x) (if (member (first x) classes) (cons 1 (rest x)) (cons -1 (rest x)))) dataset))
 
 (define train-set
-  (take (map normalize (change-classes '(1 3)  (file-lines->list "train-xor.txt"))) 10000))
+  (take (map normalize (change-classes '(1 2)  (file-lines->list "train-xor.txt"))) 500))
 
 (define test-set
-  (take (map normalize (change-classes '(1 3)  (file-lines->list "test-xor.txt"))) 10000))
-
-(define (dot2 a b [f sqr])
-  (f (apply + (map * a b))))
-
-(define (dot a b)
-  (exp (* -1.1 (apply + (map (λ(x y) (sqr (- x y))) a b)))))
+  (drop (map normalize (change-classes '(1 2)  (file-lines->list "test-xor.txt"))) 5000))
 
 (define (vectorize set)
   (for/vector ([i set])
@@ -43,6 +37,12 @@
       rnd
       (random-j N i)))
 
+(define (dot a b [f sqr])
+  (apply + (map * a b)))
+
+(define (dot2 a b [gamma 2])
+  (exp (* (- gamma) (apply + (map (λ(x y) (sqr (- x y))) a b)))))
+
 (define (f set X [bias b])
   (for/fold ([sum bias])
             ([i set])
@@ -50,7 +50,7 @@
     (+ sum (* (vfirst i) (first xy) (dot X (rest xy))))))
 
 (define N (length train-set))
-(define C 0.3)
+(define C 6)
 (define tol 0.001)
 (define b 0)
 
@@ -189,7 +189,7 @@
            (for/list ([j (in-range -300 300 3)])
              (map (λ(x) (/ x 300)) (list i j))))))
 
-(define colors (list "Red" "Navy" "Olive" "DarkGreen" "Magenta"
+(define colors (list "Red" "Navy" "Olive" "Red" "Magenta"
                      "Maroon" "RoyalBlue" "DeepPink" "Coral"))
 
 (define test-all (map (λ(x) (cons (if (negative? (f simplifier x)) -1 1) x)) all-points))
@@ -214,13 +214,13 @@
            (points (get-points test-all i)
                    #:x-min -1 #:x-max 1
                    #:y-min -1 #:y-max 1
-                   #:sym 'fullcircle4 #:color (if (= i 1) "DarkGreen" "Navy")
+                   #:sym 'fullcircle3 #:color (if (= i 1) "Navy" "Red")
                    #:alpha 0.1))
          (for/list ([i '(-1 1)])
            (points (get-points train-set i)
                    #:x-min -1 #:x-max 1
                    #:y-min -1 #:y-max 1
-                   #:sym 'full7star #:color (if (= i 1) "DarkGreen" "Navy")
+                   #:sym 'full7star #:color (if (= i 1) "Navy" "Red")
                    #:alpha 1)))))
 
 (go-plot)

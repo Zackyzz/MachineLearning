@@ -70,36 +70,43 @@
 
 (define (get-error-matrix centroids dataset)
   (let loop ([clone dataset]
-             [error-matrix (make-list (length classes) (make-list 4 0))])
+             [error-matrix (make-list (length classes) (make-list 4 0))]
+             [corrects 0])
     (cond
-      [(equal? empty clone) error-matrix]
+      [(equal? empty clone) (list error-matrix corrects)]
       [else
        (define reality (caar clone))
        (define element (cdar clone))
        (define prediction (apply-rocchio centroids element))
-       (loop (rest clone) (update-matrix reality prediction error-matrix))])))
+       (loop (rest clone) (update-matrix reality prediction error-matrix)
+             (if (= reality prediction) (+ 1 corrects) corrects))])))
 
-(define error-matrix (get-error-matrix trained test-set))
+
+(define testss (get-error-matrix trained test-set))
+(define error-matrix (first testss))
 
 (define (cut-digits n)
   (decimal (/ (floor (* n (expt 10 4))) (expt 10 2))))
 
 (define results
   (for/list ([i error-matrix] [j classes])
-  (define TP (first i)) ;r p
-  (define FN (second i)) ;r !p
-  (define FP (third i)) ;!r p
-  (define TN (fourth i)) ;!r !p
+    (define TP (first i)) ;r p
+    (define FN (second i)) ;r !p
+    (define FP (third i)) ;!r p
+    (define TN (fourth i)) ;!r !p
 
-  (define Accuracy (/ (+ TP TN) (+ TP FN FP TN)))
-  (define Precision (/ TP (+ TP FP)))
-  (define Recall (/ TP (+ TP FN)))
+    (define Accuracy (/ (+ TP TN) (+ TP FN FP TN)))
+    (define Precision (/ TP (+ TP FP)))
+    (define Recall (/ TP (+ TP FN)))
 
-  (printf "Class ~a:\n" j)
-  (printf "Accuracy: ~a%\n" (cut-digits Accuracy))
-  (printf "Precision: ~a%\n" (cut-digits Precision))
-  (printf "Recall: ~a%\n" (cut-digits Recall))
-  (printf "Error matrix: ~a \n\n" i)
-  (map exact->inexact (list Accuracy Precision Recall))))
+    (printf "Class ~a:\n" j)
+    (printf "Accuracy: ~a%\n" (cut-digits Accuracy))
+    (printf "Precision: ~a%\n" (cut-digits Precision))
+    (printf "Recall: ~a%\n" (cut-digits Recall))
+    (printf "Error matrix: ~a \n\n" i)
+    (map exact->inexact (list Accuracy Precision Recall))))
 
 (map cut-digits (map (λ(x) (/ x 14.0)) (apply map + results)))
+
+(second testss)
+(/ (second testss) 2351.0)

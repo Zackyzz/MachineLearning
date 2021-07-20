@@ -13,14 +13,11 @@
 (define (change-class2 dataset prev after)
   (map (λ(x) (if (= prev (first x)) (cons after (rest x)) x)) dataset))
 
-(define (change-class cls dataset)
-  (map (λ(x) (if (= cls (first x)) (cons 1 (rest x)) (cons -1 (rest x)))) dataset))
-
 (define train-set
   (take (map normalize (change-class2 (file-lines->list "training2.txt") 2 0)) 5000))
 
 (define test-set
-  (drop (map normalize (change-class2 (file-lines->list "training2.txt") 2 0)) 5000))
+  (drop (map normalize (change-class2 (file-lines->list "training2.txt") 2 0)) 9999))
 
 (define classes (sort (remove-duplicates (map first train-set)) <))
 
@@ -28,11 +25,14 @@
   (f (apply + (map * a b))))
 
 (define (dot a b)
-  (exp (* -15 (apply + (map (λ(x y) (sqr (- x y))) a b)))))
+  (exp (* -0.1 (apply + (map (λ(x y) (sqr (- x y))) a b)))))
 
 (define (vectorize set)
   (for/vector ([i set])
     (vector 0 i)))
+
+(define (change-class cls dataset)
+  (map (λ(x) (if (= cls (first x)) (cons 1 (rest x)) (cons -1 (rest x)))) dataset))
 
 (define smo-sets
   (for/vector ([i classes])
@@ -51,7 +51,7 @@
     (+ sum (* (vfirst i) (first xy) (dot X (rest xy))))))
 
 (define N (length train-set))
-(define C 30)
+(define C 1)
 (define tol 0.001)
 (define b 0)
 (define bs

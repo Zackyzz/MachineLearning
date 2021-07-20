@@ -10,8 +10,8 @@
 (define (change-class dataset prev after)
   (map (λ(x) (if (= prev (car x)) (cons after (cdr x)) x)) dataset))
 
-(define train-set (change-class (change-class (file-lines->list "train-xor.txt") 2 0) 3 1))
-(define test-set (change-class (change-class (file-lines->list "test-xor.txt") 2 0) 3 1))
+(define train-set (change-class (change-class (file-lines->list "train-xor.txt") 2 1) 3 0))
+(define test-set (change-class (change-class (file-lines->list "test-xor.txt") 2 1) 3 0))
 
 (define decimal exact->inexact)
 
